@@ -1,5 +1,233 @@
-template-repository (1.0-1) unstable; urgency=medium
+python-pynvim (0.4.2-2) unstable; urgency=medium
 
-  * Initial release
+  * Bump debhelper from old 12 to 13.
+  * Remove obsolete field Name from debian/upstream/metadata (already present in
+    machine-readable debian/copyright).
+  * Update standards version to 4.5.1, no changes needed.
 
- -- Tsic404 <liuheng@deepin.org>  Sat, 28 Jan 2023 13:46:49 +0800
+ -- Debian Janitor <janitor@jelmer.uk>  Sat, 28 May 2022 00:56:01 +0100
+
+python-pynvim (0.4.2-1) unstable; urgency=medium
+
+  [ Ondřej Nový ]
+  * d/control: Update Maintainer field with new Debian Python Team
+    contact address.
+  * d/control: Update Vcs-* fields with new Debian Python Team Salsa
+    layout.
+
+  [ Thomas Goirand ]
+  * Team upload.
+  * New upstream release:
+    - Works with python3-msgpack >= 1.x (Closes: #975237).
+  * Add a debian/salsa-ci.yml.
+
+ -- Thomas Goirand <zigo@debian.org>  Fri, 20 Nov 2020 10:18:31 +0100
+
+python-pynvim (0.4.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * Fix autopkgtest to reliably test all supported python3 versions (Closes:
+    #954479)
+
+ -- Scott Kitterman <scott@kitterman.com>  Sun, 22 Mar 2020 00:15:11 -0400
+
+python-pynvim (0.4.1-1) unstable; urgency=medium
+
+  * New upstream version 0.4.1
+  * Bump debhelper-compat to 12, no changes needed
+  * Bump Std-ver to 4.5.0, no changes needed
+  * Add d/upstream/metadata file
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Tue, 11 Feb 2020 14:29:27 +0100
+
+python-pynvim (0.4.0-5) unstable; urgency=medium
+
+  * Re-add python3-neovim package to transition installs to python3-pynvim
+
+ -- James McCoy <jamessan@debian.org>  Sun, 29 Dec 2019 11:11:36 -0500
+
+python-pynvim (0.4.0-4) unstable; urgency=medium
+
+  * Declare python3-pyvim Breaks/Replaces python3-neovim.  (Closes: #947673)
+
+ -- James McCoy <jamessan@debian.org>  Sat, 28 Dec 2019 21:13:57 -0500
+
+python-pynvim (0.4.0-3) unstable; urgency=medium
+
+  * Rename debian/tests/python3-neovim to debian/tests/python3-pynvim and
+    change test Depends accordingly.
+
+ -- James McCoy <jamessan@debian.org>  Sat, 28 Dec 2019 11:38:59 -0500
+
+python-pynvim (0.4.0-2) unstable; urgency=medium
+
+  * Add changelog entries for #914963 and #945605 to 0.4.0-1.
+
+ -- James McCoy <jamessan@debian.org>  Fri, 27 Dec 2019 14:11:03 -0500
+
+python-pynvim (0.4.0-1) unstable; urgency=medium
+
+  [ Ondřej Nový ]
+  * Use debhelper-compat instead of debian/compat.
+  * Bump Standards-Version to 4.4.1.
+
+  [ Andrey Rahmatullin ]
+  * Drop Python 2 support (Closes: #937941).
+
+  [ James McCoy ]
+  * New upstream version 0.4.0
+    - Fix FTBFS with neovim >= 0.4 (Closes: #945605)
+    - Renamed to python-pynvim (Closes: #914963)
+    - Add python3-pytest-runner to Build-Depends
+  * Remove 0001-Add-missing-conftest.py-in-sdist.patch, applied upstream
+  * Rename python3-neovim to python3-pynvim
+  * Add myself to Uploaders
+
+ -- James McCoy <jamessan@debian.org>  Thu, 26 Dec 2019 22:41:00 -0500
+
+python-neovim (0.3.0-1) unstable; urgency=medium
+
+  * New upstream version 0.3.0
+    - Last version under python-neovim namespace
+  * Refresh d/patches, drop 0002-Fix-dead-lock-in-test_async_call
+    as it was upstreamed
+  * Bump Std-Ver to 4.3.0, no changes needed
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Tue, 08 Jan 2019 15:27:39 +0100
+
+python-neovim (0.2.6-3) unstable; urgency=medium
+
+  * Add new patch to fix dead-lock on test_async_call (Closes: #867886)
+  * Fix style on d/t/python{,3}-neovim
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Sat, 21 Jul 2018 17:03:14 +0200
+
+python-neovim (0.2.6-2) unstable; urgency=medium
+
+  * Add Provides: vim-python{,3} (Closes: #872942)
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Sun, 15 Jul 2018 13:38:54 +0200
+
+python-neovim (0.2.6-1) unstable; urgency=medium
+
+  [ Ondřej Nový ]
+  * d/control: Set Vcs-* to salsa.debian.org
+  * d/tests: Use AUTOPKGTEST_TMP instead of ADTTMP
+
+  [ Víctor Cuadrado Juan ]
+  * New upstream version 0.2.6
+  * Build-Depend on msgpack >= 0.5.0
+  * Build-Depend on pytest instead of nose
+  * Move from nose to pytest in autopkgtests
+  * Add 0001-Add-test-conftest.py-as-not-shipped-in-sdist.patch
+  * Convert from git-dpm to patches unapplied format (gbp)
+  * Bump compat level to 11, no changes needed
+  * Bump Std-Ver to 4.1.5, add Rules-Requires-Root: no
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Sun, 15 Jul 2018 12:52:45 +0200
+
+python-neovim (0.2.0-1) unstable; urgency=medium
+
+  * New upstream release: 0.2.0
+    - Brings it up to date with neovim 0.2.1
+    - Fix tests on windows
+    - Fix an indexing bug when setting lines in a Range object
+    - Documentation update
+    - Make sure logging always uses UTF-8 regardless of locale
+    - Add argument to allow nested notification handlers
+  * Update Std-Ver to 4.1.1 (no changes needed)
+  * Drop "Testsuite: autopkgtest*" from d/control as it isn't needed
+  * Update Breaks and Build-Depends to neovim 0.2.1
+  * Add "Recommends: neovim"
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Mon, 13 Nov 2017 21:16:15 +0100
+
+python-neovim (0.1.13-3) unstable; urgency=medium
+
+  * Rename d/tests/control.autodep8 to d/tests/control
+  * Pass -vv to nosetests, to investigate flaky tests (see #867886)
+  * Update Std-Ver to 4.0.1
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Tue, 15 Aug 2017 22:33:56 +0200
+
+python-neovim (0.1.13-2) unstable; urgency=medium
+
+  * Enable nosetests in autopkgtest
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Mon, 27 Feb 2017 19:11:52 +0100
+
+python-neovim (0.1.13-1) unstable; urgency=medium
+
+  * New Upstream release: 0.1.13
+    - Python 3.6 is officially supported
+    - Fix spawning a child on python 3.6 (Closes: #848230)
+    - Conform to pyuv 1.0 API
+    - Use tox for testing and add python 3.6 to test matrix
+    - Thanks to James McCoy (jamessan) for doing the
+      leg-work on fixing this version's bugs
+  * New Upstream release: 0.1.12
+    - Fixed version number in pypi tar.gz
+  * New upstream release: 0.1.11
+    - Supports python2.7, python3.3+
+    - Declare api level 1, for neovim >= 0.1.6
+  * Update Breaks: neovim (<< 0.1.6)
+  * First upload to Unstable
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Sat, 28 Jan 2017 20:19:58 +0100
+
+python-neovim (0.1.10-1) experimental; urgency=medium
+
+  * New upstream release
+    - Last version supporting python2.6
+    - This version supports neovim >=0.15
+  * Update Build-Depends to neovim (>= 0.1.5)
+  * Update Breaks to neovim (<< 0.1.5)
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Fri, 28 Oct 2016 22:40:45 +0200
+
+python-neovim (0.1.9-1) experimental; urgency=medium
+
+  * new upstream version
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Sat, 18 Jun 2016 16:45:08 +0200
+
+python-neovim (0.1.8-1) experimental; urgency=medium
+
+  * Import python-neovim_0.1.8.orig.tar.gz
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Fri, 20 May 2016 00:04:26 +0200
+
+python-neovim (0.1.7-1) experimental; urgency=medium
+
+  * New upstream release
+  * Reword descriptions; you don't need both python2 and 3 packages
+  * Update Std-Ver to 3.9.8
+  * Drop Build-Depends on dtach as tests lift their own nvim instance
+  * Add Breaks and Build-Depends on neovim 0.1.3
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Wed, 20 Apr 2016 16:39:06 +0200
+
+python-neovim (0.1.5-1) experimental; urgency=medium
+
+  [ Víctor Cuadrado Juan ]
+  * New upstream release
+  * Update d/copyright to 2016
+  * Add README.md to docs now that upstream ships it
+
+  [ Ondřej Nový ]
+  * Fixed homepage (https)
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Tue, 05 Apr 2016 01:48:01 +0200
+
+python-neovim (0.1.4-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Add .git-dpm.
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Thu, 10 Mar 2016 23:44:09 +0100
+
+python-neovim (0.1.3-1) experimental; urgency=medium
+
+  * Initial release. (Closes: #808176)
+
+ -- Víctor Cuadrado Juan <me@viccuad.me>  Thu, 03 Mar 2016 14:06:55 +0100
