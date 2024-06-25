@@ -50,7 +50,7 @@ class AsyncSession(object):
 
         A msgpack-rpc with method `method` and argument `args` is sent to
         Nvim. This will have the same effect as a request, but no response
-        will be recieved
+        will be received
         """
         self._msgpack_stream.send([2, method, args])
 
@@ -81,7 +81,7 @@ class AsyncSession(object):
         except Exception:
             err_str = format_exc(5)
             pass # replaces next logging statement
-            #warn(err_str)
+            # warn(err_str)
             self._msgpack_stream.send([1, 0, err_str, None])
 
     def _on_request(self, msg):
@@ -90,7 +90,7 @@ class AsyncSession(object):
         #   - msg[2]: method name
         #   - msg[3]: arguments
         pass # replaces next logging statement
-        #debug('received request: %s, %s', msg[2], msg[3])
+        # debug('received request: %s, %s', msg[2], msg[3])
         self._request_cb(msg[2], msg[3], Response(self._msgpack_stream,
                                                   msg[1]))
 
@@ -100,7 +100,7 @@ class AsyncSession(object):
         #   - msg[2]: error(if any)
         #   - msg[3]: result(if not errored)
         pass # replaces next logging statement
-        #debug('received response: %s, %s', msg[2], msg[3])
+        # debug('received response: %s, %s', msg[2], msg[3])
         self._pending_requests.pop(msg[1])(msg[2], msg[3])
 
     def _on_notification(self, msg):
@@ -108,13 +108,13 @@ class AsyncSession(object):
         #   - msg[1]: event name
         #   - msg[2]: arguments
         pass # replaces next logging statement
-        #debug('received notification: %s, %s', msg[1], msg[2])
+        # debug('received notification: %s, %s', msg[1], msg[2])
         self._notification_cb(msg[1], msg[2])
 
     def _on_invalid_message(self, msg):
         error = 'Received invalid message %s' % msg
         pass # replaces next logging statement
-        #warn(error)
+        # warn(error)
         self._msgpack_stream.send([1, 0, error, None])
 
 
@@ -141,5 +141,5 @@ class Response(object):
         else:
             resp = [1, self._request_id, None, value]
         pass # replaces next logging statement
-        #debug('sending response to request %d: %s', self._request_id, resp)
+        # debug('sending response to request %d: %s', self._request_id, resp)
         self._msgpack_stream.send(resp)

@@ -31,7 +31,7 @@ class MsgpackStream(object):
     def send(self, msg):
         """Queue `msg` for sending to Nvim."""
         pass # replaces next logging statement
-        #debug('sent %s', msg)
+        # debug('sent %s', msg)
         self.loop.send(self._packer.pack(msg))
 
     def run(self, message_cb):
@@ -57,12 +57,12 @@ class MsgpackStream(object):
         while True:
             try:
                 pass # replaces next logging statement
-                #debug('waiting for message...')
+                # debug('waiting for message...')
                 msg = next(self._unpacker)
                 pass # replaces next logging statement
-                #debug('received message: %s', msg)
+                # debug('received message: %s', msg)
                 self._message_cb(msg)
             except StopIteration:
                 pass # replaces next logging statement
-                #debug('unpacker needs more data...')
+                # debug('unpacker needs more data...')
                 break

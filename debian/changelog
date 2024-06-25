@@ -1,3 +1,19 @@
+python-pynvim (0.5.0-1) unstable; urgency=medium
+
+  [ Debian Janitor ]
+  * Update standards version to 4.6.2, no changes needed.
+
+  [ James McCoy ]
+  * Remove obsolete transitional package and Breaks/Replaces for
+    python3-neovim (Closes: #1038308)
+  * Remove obsolete Breaks on neovim < 0.2.1
+  * Remove mention of non-existent python2 package in long description
+  * New upstream release
+    + Python 3.12 support (Closes: #1056498)
+  * Add pybuild-plugin-pyproject to Build-Depends
+
+ -- James McCoy <jamessan@debian.org>  Wed, 06 Dec 2023 11:03:30 -0500
+
 python-pynvim (0.4.2-2) unstable; urgency=medium
 
   * Bump debhelper from old 12 to 13.

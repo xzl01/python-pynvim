@@ -1,8 +1,15 @@
 """Common code for event loop implementations."""
 import logging
 import signal
+import sys
 import threading
+from abc import ABC, abstractmethod
+from typing import Any, Callable, List, Optional, Type, Union
 
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 logger = logging.getLogger(__name__)
 debug, info, warn = (logger.debug, logger.info, logger.warning,)
@@ -14,8 +21,15 @@ debug, info, warn = (logger.debug, logger.info, logger.warning,)
 default_int_handler = signal.getsignal(signal.SIGINT)
 main_thread = threading.current_thread()
 
+TTransportType = Union[
+    Literal['stdio'],
+    Literal['socket'],
+    Literal['tcp'],
+    Literal['child']
+]
 
-class BaseEventLoop(object):
+
+class BaseEventLoop(ABC):
 
     """Abstract base class for all event loops.
 
@@ -52,7 +66,7 @@ class BaseEventLoop(object):
     - `_teardown_signals()`: Removes signal listeners set by `_setup_signals`
     """
 
-    def __init__(self, transport_type, *args):
+    def __init__(self, transport_type: TTransportType, *args: Any, **kwargs: Any):
         """Initialize and connect the event loop instance.
 
         The only arguments are the transport type and transport-specific
@@ -83,44 +97,72 @@ class BaseEventLoop(object):
         self._transport_type = transport_type
         self._signames = dict((k, v) for v, k in signal.__dict__.items()
                               if v.startswith('SIG'))
-        self._on_data = None
-        self._error = None
+        self._on_data: Optional[Callable[[bytes], None]] = None
+        self._error: Optional[BaseException] = None
         self._init()
         try:
-            getattr(self, '_connect_{}'.format(transport_type))(*args)
+            getattr(self, '_connect_{}'.format(transport_type))(*args, **kwargs)
         except Exception as e:
             self.close()
             raise e
         self._start_reading()
 
-    def connect_tcp(self, address, port):
+    @abstractmethod
+    def _init(self) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _start_reading(self) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _send(self, data: bytes) -> None:
+        raise NotImplementedError()
+
+    def connect_tcp(self, address: str, port: int) -> None:
         """Connect to tcp/ip `address`:`port`. Delegated to `_connect_tcp`."""
         pass # replaces next logging statement
-        #info('Connecting to TCP address: %s:%d', address, port)
+        # info('Connecting to TCP address: %s:%d', address, port)
         self._connect_tcp(address, port)
 
-    def connect_socket(self, path):
+    @abstractmethod
+    def _connect_tcp(self, address: str, port: int) -> None:
+        raise NotImplementedError()
+
+    def connect_socket(self, path: str) -> None:
         """Connect to socket at `path`. Delegated to `_connect_socket`."""
         pass # replaces next logging statement
-        #info('Connecting to %s', path)
+        # info('Connecting to %s', path)
         self._connect_socket(path)
 
-    def connect_stdio(self):
+    @abstractmethod
+    def _connect_socket(self, path: str) -> None:
+        raise NotImplementedError()
+
+    def connect_stdio(self) -> None:
         """Connect using stdin/stdout. Delegated to `_connect_stdio`."""
         pass # replaces next logging statement
-        #info('Preparing stdin/stdout for streaming data')
+        # info('Preparing stdin/stdout for streaming data')
         self._connect_stdio()
+
+    @abstractmethod
+    def _connect_stdio(self) -> None:
+        raise NotImplementedError()
 
     def connect_child(self, argv):
         """Connect a new Nvim instance. Delegated to `_connect_child`."""
         pass # replaces next logging statement
-        #info('Spawning a new nvim instance')
+        # info('Spawning a new nvim instance')
         self._connect_child(argv)
 
-    def send(self, data):
+    @abstractmethod
+    def _connect_child(self, argv: List[str]) -> None:
+        raise NotImplementedError()
+
+    def send(self, data: bytes) -> None:
         """Queue `data` for sending to Nvim."""
         pass # replaces next logging statement
-        #debug("Sending '%s'", data)
+        # debug("Sending '%s'", data)
         self._send(data)
 
     def threadsafe_call(self, fn):
@@ -146,47 +188,55 @@ class BaseEventLoop(object):
         if threading.current_thread() == main_thread:
             self._setup_signals([signal.SIGINT, signal.SIGTERM])
         pass # replaces next logging statement
-        #debug('Entering event loop')
+        # debug('Entering event loop')
         self._run()
         pass # replaces next logging statement
-        #debug('Exited event loop')
+        # debug('Exited event loop')
         if threading.current_thread() == main_thread:
             self._teardown_signals()
             signal.signal(signal.SIGINT, default_int_handler)
         self._on_data = None
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the event loop."""
         self._stop()
         pass # replaces next logging statement
-        #debug('Stopped event loop')
+        # debug('Stopped event loop')
 
-    def close(self):
+    @abstractmethod
+    def _stop(self) -> None:
+        raise NotImplementedError()
+
+    def close(self) -> None:
         """Stop the event loop."""
         self._close()
         pass # replaces next logging statement
-        #debug('Closed event loop')
+        # debug('Closed event loop')
 
-    def _on_signal(self, signum):
+    @abstractmethod
+    def _close(self) -> None:
+        raise NotImplementedError()
+
+    def _on_signal(self, signum: signal.Signals) -> None:
         msg = 'Received {}'.format(self._signames[signum])
         pass # replaces next logging statement
-        #debug(msg)
+        # debug(msg)
         if signum == signal.SIGINT and self._transport_type == 'stdio':
             # When the transport is stdio, we are probably running as a Nvim
             # child process. In that case, we don't want to be killed by
             # ctrl+C
             return
-        cls = Exception
+        cls: Type[BaseException] = Exception
         if signum == signal.SIGINT:
             cls = KeyboardInterrupt
         self._error = cls(msg)
         self.stop()
 
-    def _on_error(self, error):
+    def _on_error(self, error: str) -> None:
         pass # replaces next logging statement
-        #debug(error)
+        # debug(error)
         self._error = OSError(error)
         self.stop()
 
-    def _on_interrupt(self):
+    def _on_interrupt(self) -> None:
         self.stop()

@@ -1,13 +1,13 @@
+# type: ignore
 """Legacy python/python3-vim emulation."""
-import imp
 import io
 import logging
 import os
 import sys
+from importlib.machinery import PathFinder
 from types import ModuleType
 
 from pynvim.api import Nvim, walk
-from pynvim.compat import IS_PYTHON3
 from pynvim.msgpack_rpc import ErrorResponse
 from pynvim.plugin.decorators import plugin, rpc_export
 from pynvim.util import format_exc_skip
@@ -17,16 +17,6 @@ __all__ = ('ScriptHost',)
 
 logger = logging.getLogger(__name__)
 debug, info, warn = (logger.debug, logger.info, logger.warn,)
-
-if IS_PYTHON3:
-    basestring = str
-
-    if sys.version_info >= (3, 4):
-        from importlib.machinery import PathFinder
-
-    PYTHON_SUBDIR = 'python3'
-else:
-    PYTHON_SUBDIR = 'python2'
 
 
 @plugin
@@ -67,13 +57,13 @@ class ScriptHost(object):
         """
         self.nvim = nvim
         pass # replaces next logging statement
-        #info('install import hook/path')
+        # info('install import hook/path')
         self.hook = path_hook(nvim)
         sys.path_hooks.append(self.hook)
         nvim.VIM_SPECIAL_PATH = '_vim_path_'
         sys.path.append(nvim.VIM_SPECIAL_PATH)
         pass # replaces next logging statement
-        #info('redirect sys.stdout and sys.stderr')
+        # info('redirect sys.stdout and sys.stderr')
         self.saved_stdout = sys.stdout
         self.saved_stderr = sys.stderr
         sys.stdout = RedirectStream(lambda data: nvim.out_write(data))
@@ -83,11 +73,11 @@ class ScriptHost(object):
         """Restore state modified from the `setup` call."""
         nvim = self.nvim
         pass # replaces next logging statement
-        #info('uninstall import hook/path')
+        # info('uninstall import hook/path')
         sys.path.remove(nvim.VIM_SPECIAL_PATH)
         sys.path_hooks.remove(self.hook)
         pass # replaces next logging statement
-        #info('restore sys.stdout and sys.stderr')
+        # info('restore sys.stdout and sys.stderr')
         sys.stdout = self.saved_stdout
         sys.stderr = self.saved_stderr
 
@@ -95,21 +85,31 @@ class ScriptHost(object):
     def python_execute(self, script, range_start, range_stop):
         """Handle the `python` ex command."""
         self._set_current_range(range_start, range_stop)
+
+        if script.startswith('='):
+            # Handle ":py= ...". Evaluate as an expression and print.
+            # (note: a valid python statement can't start with "=")
+            expr = script[1:]
+            print(self.python_eval(expr))
+            return
+
         try:
+            # pylint: disable-next=exec-used
             exec(script, self.module.__dict__)
-        except Exception:
-            raise ErrorResponse(format_exc_skip(1))
+        except Exception as exc:
+            raise ErrorResponse(format_exc_skip(1)) from exc
 
     @rpc_export('python_execute_file', sync=True)
     def python_execute_file(self, file_path, range_start, range_stop):
         """Handle the `pyfile` ex command."""
         self._set_current_range(range_start, range_stop)
-        with open(file_path) as f:
+        with open(file_path, 'rb') as f:
             script = compile(f.read(), file_path, 'exec')
             try:
+                # pylint: disable-next=exec-used
                 exec(script, self.module.__dict__)
-            except Exception:
-                raise ErrorResponse(format_exc_skip(1))
+            except Exception as exc:
+                raise ErrorResponse(format_exc_skip(1)) from exc
 
     @rpc_export('python_do_range', sync=True)
     def python_do_range(self, start, stop, code):
@@ -147,7 +147,7 @@ class ScriptHost(object):
                     sstart += len(newlines) + 1
                     newlines = []
                     pass
-                elif isinstance(result, basestring):
+                elif isinstance(result, str):
                     newlines.append(result)
                 else:
                     exception = TypeError('pydo should return a string '
@@ -168,7 +168,11 @@ class ScriptHost(object):
     @rpc_export('python_eval', sync=True)
     def python_eval(self, expr):
         """Handle the `pyeval` vim function."""
-        return eval(expr, self.module.__dict__)
+        try:
+            # pylint: disable-next=eval-used
+            return eval(expr, self.module.__dict__)
+        except Exception as exc:
+            raise ErrorResponse(format_exc_skip(1)) from exc
 
     @rpc_export('python_chdir', sync=False)
     def python_chdir(self, cwd):
@@ -191,14 +195,11 @@ class RedirectStream(io.IOBase):
         self.redirect_handler('\n'.join(seq))
 
 
-if IS_PYTHON3:
-    num_types = (int, float)
-else:
-    num_types = (int, long, float)  # noqa: F821
+num_types = (int, float)
 
 
 def num_to_str(obj):
-    if isinstance(obj, num_types):
+    if isinstance(obj, num_types) and not isinstance(obj, bool):
         return str(obj)
     else:
         return obj
@@ -218,6 +219,7 @@ def path_hook(nvim):
         return discover_runtime_directories(nvim)
 
     def _find_module(fullname, oldtail, path):
+        import imp
         idx = oldtail.find('.')
         if idx > 0:
             name = oldtail[:idx]
@@ -238,6 +240,7 @@ def path_hook(nvim):
                 return sys.modules[fullname]
             except KeyError:
                 pass
+            import imp
             return imp.load_module(fullname, *self.module)
 
     class VimPathFinder(object):
@@ -269,7 +272,7 @@ def discover_runtime_directories(nvim):
     for rtp in nvim.list_runtime_paths():
         if not os.path.exists(rtp):
             continue
-        for subdir in ['pythonx', PYTHON_SUBDIR]:
+        for subdir in ['pythonx', 'python3']:
             path = os.path.join(rtp, subdir)
             if os.path.exists(path):
                 rv.append(path)

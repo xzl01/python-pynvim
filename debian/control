@@ -9,6 +9,7 @@ Rules-Requires-Root: no
 Build-Depends:
  debhelper-compat (= 13),
  dh-python,
+ pybuild-plugin-pyproject,
  python3-all,
  python3-setuptools,
 # dependencies for python3:
@@ -19,19 +20,10 @@ Build-Depends:
  python3-pytest (>= 3.4.0),
 # dependencies for setup:
  python3-pytest-runner,
-Standards-Version: 4.5.1
+Standards-Version: 4.6.2
 Homepage: https://github.com/neovim/python-client
 Vcs-Git: https://salsa.debian.org/python-team/packages/python-pynvim.git
 Vcs-Browser: https://salsa.debian.org/python-team/packages/python-pynvim
-
-Package: python3-neovim
-Architecture: all
-Depends:
- python3-pynvim,
- ${misc:Depends}
-Section: oldlibs
-Description: transitional dummy package
- This is a transitional dummy package.  It can safely be removed.
 
 Package: python3-pynvim
 Architecture: all
@@ -42,12 +34,7 @@ Provides:
  python3-neovim (= ${source:Version}),
  ${python3:Provides},
  vim-python3,
-Breaks: neovim (<< 0.2.1), python3-neovim (<< 0.4.0~)
-Replaces: python3-neovim (<< 0.4.0~)
 Recommends: neovim
 Description: Python3 library for scripting Neovim processes through its msgpack-rpc API
  Neovim is a Vim fork that focuses on refactoring, extensibility and
  simplification of the original code base.
- .
- This is the Python3 version of the package (If you only use one of python2 or
- python3, it is enough to install that version.)

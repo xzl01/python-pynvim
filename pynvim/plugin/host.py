@@ -1,26 +1,43 @@
+# type: ignore
 """Implements a Nvim host for python plugins."""
-import imp
+
+import importlib
 import inspect
 import logging
 import os
 import os.path
 import re
+import sys
 from functools import partial
 from traceback import format_exc
+from typing import Any, Sequence
 
-from pynvim.api import decode_if_bytes, walk
-from pynvim.compat import IS_PYTHON3, find_module
+from pynvim.api import Nvim, decode_if_bytes, walk
 from pynvim.msgpack_rpc import ErrorResponse
 from pynvim.plugin import script_host
 from pynvim.util import format_exc_skip, get_client_info
 
-__all__ = ('Host')
+__all__ = ('Host',)
 
 logger = logging.getLogger(__name__)
 error, debug, info, warn = (logger.error, logger.debug, logger.info,
                             logger.warning,)
 
 host_method_spec = {"poll": {}, "specs": {"nargs": 1}, "shutdown": {}}
+
+
+def _handle_import(path: str, name: str):
+    """Import python module `name` from a known file path or module directory.
+
+    The path should be the base directory from which the module can be imported.
+    To support python 3.12, the use of `imp` should be avoided.
+    @see https://docs.python.org/3.12/whatsnew/3.12.html#imp
+    """
+    if not name:
+        raise ValueError("Missing module name.")
+
+    sys.path.append(path)
+    return importlib.import_module(name)
 
 
 class Host(object):
@@ -31,7 +48,7 @@ class Host(object):
     requests/notifications to the appropriate handlers.
     """
 
-    def __init__(self, nvim):
+    def __init__(self, nvim: Nvim):
         """Set handlers for plugin_load/plugin_unload."""
         self.nvim = nvim
         self._specs = {}
@@ -46,14 +63,13 @@ class Host(object):
             'shutdown': self.shutdown
         }
 
-        # Decode per default for Python3
-        self._decode_default = IS_PYTHON3
+        self._decode_default = True
 
-    def _on_async_err(self, msg):
+    def _on_async_err(self, msg: str) -> None:
         # uncaught python exception
         self.nvim.err_write(msg, async_=True)
 
-    def _on_error_event(self, kind, msg):
+    def _on_error_event(self, kind: Any, msg: str) -> None:
         # error from nvim due to async request
         # like nvim.command(..., async_=True)
         errmsg = "{}: Async request caused an error:\n{}\n".format(
@@ -68,7 +84,7 @@ class Host(object):
                            lambda: self._load(plugins),
                            err_cb=self._on_async_err)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shutdown the host."""
         self._unload()
         self.nvim.stop_loop()
@@ -89,9 +105,9 @@ class Host(object):
         self._discover_functions(plugin, module_handlers, path, False)
 
         if sync:
-            self._request_handlers[name](*args)
+            return self._request_handlers[name](*args)
         else:
-            self._notification_handlers[name](*args)
+            return self._notification_handlers[name](*args)
 
     def _wrap_function(self, fn, sync, decode, nvim_bind, name, *args):
         if decode:
@@ -110,38 +126,36 @@ class Host(object):
                        .format(name, args, format_exc_skip(1)))
                 self._on_async_err(msg + "\n")
 
-    def _on_request(self, name, args):
+    def _on_request(self, name: str, args: Sequence[Any]) -> None:
         """Handle a msgpack-rpc request."""
-        if IS_PYTHON3:
-            name = decode_if_bytes(name)
+        name = decode_if_bytes(name)
         handler = self._request_handlers.get(name, None)
         if not handler:
             msg = self._missing_handler_error(name, 'request')
             pass # replaces next logging statement
-            #error(msg)
+            # error(msg)
             raise ErrorResponse(msg)
 
         pass # replaces next logging statement
-        #debug('calling request handler for "%s", args: "%s"', name, args)
+        # debug('calling request handler for "%s", args: "%s"', name, args)
         rv = handler(*args)
         pass # replaces next logging statement
-        #debug("request handler for '%s %s' returns: %s", name, args, rv)
+        # debug("request handler for '%s %s' returns: %s", name, args, rv)
         return rv
 
-    def _on_notification(self, name, args):
+    def _on_notification(self, name: str, args: Sequence[Any]) -> None:
         """Handle a msgpack-rpc notification."""
-        if IS_PYTHON3:
-            name = decode_if_bytes(name)
+        name = decode_if_bytes(name)
         handler = self._notification_handlers.get(name, None)
         if not handler:
             msg = self._missing_handler_error(name, 'notification')
             pass # replaces next logging statement
-            #error(msg)
+            # error(msg)
             self._on_async_err(msg + "\n")
             return
 
         pass # replaces next logging statement
-        #debug('calling notification handler for "%s", args: "%s"', name, args)
+        # debug('calling notification handler for "%s", args: "%s"', name, args)
         handler(*args)
 
     def _missing_handler_error(self, name, kind):
@@ -153,13 +167,22 @@ class Host(object):
                 msg = msg + "\n" + loader_error
         return msg
 
-    def _load(self, plugins):
+    def _load(self, plugins: Sequence[str]) -> None:
+        """Load the remote plugins and register handlers defined in the plugins.
+
+        Args:
+            plugins: List of plugin paths to rplugin python modules
+                registered by remote#host#RegisterPlugin('python3', ...)
+                (see the generated rplugin.vim manifest)
+        """
+        # self.nvim.err_write("host init _load\n", async_=True)
         has_script = False
         for path in plugins:
+            path = os.path.normpath(path)  # normalize path
             err = None
             if path in self._loaded:
                 pass # replaces next logging statement
-                #error('{} is already loaded'.format(path))
+                # warn('{} is already loaded'.format(path))
                 continue
             try:
                 if path == "script_host.py":
@@ -167,21 +190,20 @@ class Host(object):
                     has_script = True
                 else:
                     directory, name = os.path.split(os.path.splitext(path)[0])
-                    file, pathname, descr = find_module(name, [directory])
-                    module = imp.load_module(name, file, pathname, descr)
+                    module = _handle_import(directory, name)
                 handlers = []
                 self._discover_classes(module, handlers, path)
                 self._discover_functions(module, handlers, path, False)
                 if not handlers:
                     pass # replaces next logging statement
-                    #error('{} exports no handlers'.format(path))
+                    # error('{} exports no handlers'.format(path))
                     continue
                 self._loaded[path] = {'handlers': handlers, 'module': module}
             except Exception as e:
                 err = ('Encountered {} loading plugin at {}: {}\n{}'
                        .format(type(e).__name__, path, e, format_exc(5)))
                 pass # replaces next logging statement
-                #error(err)
+                # error(err)
                 self._load_errors[path] = err
 
         kind = ("script-host" if len(plugins) == 1 and has_script
@@ -190,7 +212,7 @@ class Host(object):
         self.name = info[0]
         self.nvim.api.set_client_info(*info, async_=True)
 
-    def _unload(self):
+    def _unload(self) -> None:
         for path, plugin in self._loaded.items():
             handlers = plugin['handlers']
             for handler in handlers:
@@ -240,12 +262,12 @@ class Host(object):
             if sync:
                 if method in self._request_handlers:
                     raise Exception(('Request handler for "{}" is '
-                                    + 'already registered').format(method))
+                                     + 'already registered').format(method))
                 self._request_handlers[method] = fn_wrapped
             else:
                 if method in self._notification_handlers:
                     raise Exception(('Notification handler for "{}" is '
-                                    + 'already registered').format(method))
+                                     + 'already registered').format(method))
                 self._notification_handlers[method] = fn_wrapped
             if hasattr(fn, '_nvim_rpc_spec'):
                 specs.append(fn._nvim_rpc_spec)
@@ -261,8 +283,7 @@ class Host(object):
                 setattr(fn2, attr, getattr(fn, attr))
 
     def _on_specs_request(self, path):
-        if IS_PYTHON3:
-            path = decode_if_bytes(path)
+        path = decode_if_bytes(path)
         if path in self._load_errors:
             self.nvim.out_write(self._load_errors[path] + '\n')
         return self._specs.get(path, 0)
